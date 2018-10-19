@@ -3,7 +3,7 @@
 
 
 // Upload server configuration
-#define SERVER "http://dovahkiin.stanford.edu"
+#define SERVER "http://192.168.1.5"
 #define UPLOAD ":8000/upload"
 #define VERIFY ":8000/verify"
 

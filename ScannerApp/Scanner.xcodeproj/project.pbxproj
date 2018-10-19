@@ -371,7 +371,7 @@
 				ORGANIZATIONNAME = Occipital;
 				TargetAttributes = {
 					2AFC8D73176F966000F7F3B5 = {
-						DevelopmentTeam = CK5NGSFVX2;
+						DevelopmentTeam = 649TFYPKSB;
 					};
 				};
 			};
@@ -556,7 +556,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
-				DEVELOPMENT_TEAM = CK5NGSFVX2;
+				DEVELOPMENT_TEAM = 649TFYPKSB;
 				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/Frameworks";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Scanner/Scanner-Prefix.pch";
@@ -566,7 +566,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				OTHER_CFLAGS = "-DWRITE_LOCAL";
 				"OTHER_LDFLAGS[arch=*]" = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.Scanner.--";
+				PRODUCT_BUNDLE_IDENTIFIER = com.Scanner.9.3;
 				PRODUCT_NAME = ScanNet;
 				PROVISIONING_PROFILE = "";
 				TARGETED_DEVICE_FAMILY = 2;
@@ -623,7 +623,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
-				DEVELOPMENT_TEAM = CK5NGSFVX2;
+				DEVELOPMENT_TEAM = 649TFYPKSB;
 				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/Frameworks";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Scanner/Scanner-Prefix.pch";
@@ -633,7 +633,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				OTHER_CFLAGS = "-DWRITE_LOCAL";
 				"OTHER_LDFLAGS[arch=*]" = "-ObjC";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.Scanner.--";
+				PRODUCT_BUNDLE_IDENTIFIER = com.Scanner.9.3;
 				PRODUCT_NAME = ScanNet;
 				PROVISIONING_PROFILE = "";
 				TARGETED_DEVICE_FAMILY = 2;

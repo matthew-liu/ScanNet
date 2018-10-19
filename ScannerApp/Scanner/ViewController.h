@@ -22,7 +22,7 @@ struct Options //TODO get rid of mesh view/tracking params
     // Whether we should use depth aligned to the color viewpoint when Structure Sensor was calibrated.
     // This setting may get overwritten to false if no color camera can be used.
     
-    bool useHardwareRegisteredDepth = false;
+    bool useHardwareRegisteredDepth = true;
     
     // Focus position for the color camera (between 0 and 1). Must remain fixed one depth streaming
     // has started when using hardware registered depth.
