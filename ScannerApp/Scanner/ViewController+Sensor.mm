@@ -57,24 +57,24 @@ void writeIntrinsics(const Options& options)
     fprintf(g_metaFile, "colorHeight = %d\r\n", colorHeight);
     fprintf(g_metaFile, "depthWidth = %d\r\n", options.depthWidth);
     fprintf(g_metaFile, "depthHeight = %d\r\n", options.depthHeight);
-    
+
     fprintf(g_metaFile, "fx_color = %f\r\n", options.colorFocalX);
     fprintf(g_metaFile, "fy_color = %f\r\n", options.colorFocalY);
     fprintf(g_metaFile, "mx_color = %f\r\n", options.colorCenterX);
     fprintf(g_metaFile, "my_color = %f\r\n", options.colorCenterY);
-    
+
     fprintf(g_metaFile, "fx_depth = %f\r\n", options.depthFocalX);
     fprintf(g_metaFile, "fy_depth = %f\r\n", options.depthFocalY);
     fprintf(g_metaFile, "mx_depth = %f\r\n", options.depthCenterX);
     fprintf(g_metaFile, "my_depth = %f\r\n", options.depthCenterY);
-    
+
     std::string colorToDepthExt = "";
     for(int i = 0; i < 16; i++) {
         colorToDepthExt += std::to_string(options.colorToDepthExtrinsics[i]) + " ";
     }
-    
+
     fprintf(g_metaFile, "colorToDepthExtrinsics = %s\r\n", colorToDepthExt.c_str());
-    
+
     fprintf(g_metaFile, "deviceId = %s\r\n", options.deviceId.c_str());
     fprintf(g_metaFile, "deviceName = %s\r\n", options.deviceName.c_str());
     fprintf(g_metaFile, "sceneLabel = %s\r\n", options.sceneLabel.c_str());
@@ -112,7 +112,7 @@ void writeToFile(CMSampleBufferRef sampleBuffer)
         NSLog(@"sampleBuffer is not ready ");
         return;
     }
-    
+
     bool keyFrame = !CFDictionaryContainsKey((CFDictionaryRef) CFArrayGetValueAtIndex(CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, true), 0), kCMSampleAttachmentKey_NotSync);
 
     // SPS, PPS are their own NALUs
@@ -138,14 +138,14 @@ void writeToFile(CMSampleBufferRef sampleBuffer)
             }
         }
     }
-    
+
     CMBlockBufferRef buf = CMSampleBufferGetDataBuffer(sampleBuffer);
-    
+
     size_t length, totalLength;
     char *dataPointer;
 
     OSStatus statusCodeRet = CMBlockBufferGetDataPointer(buf, 0, &length, &totalLength, &dataPointer);
-    
+
     if (statusCodeRet == noErr)
     {
         size_t bufferOffset = 0;
@@ -156,13 +156,13 @@ void writeToFile(CMSampleBufferRef sampleBuffer)
             // Read the NAL unit length
             uint32_t NALUnitLength = 0;
             memcpy(&NALUnitLength, dataPointer + bufferOffset, AVCCHeaderLength);
-            
+
             // Convert the length value from Big-endian to Little-endian
             NALUnitLength = CFSwapInt32BigToHost(NALUnitLength);
 
             WRITE(g_startCode, 1, 4, g_h264File);
             WRITE(dataPointer + bufferOffset + AVCCHeaderLength, 1, NALUnitLength, g_h264File);
-            
+
             bufferOffset += AVCCHeaderLength + NALUnitLength;
         }
     }
@@ -174,7 +174,7 @@ void h264EncodedFrameCallback(CMSampleBufferRef sampleBuffer, void *userData)
         [g_h264Lock lock];
         writeToFile(sampleBuffer);
         [g_h264Lock unlock];
-        
+
         dispatch_async(dispatch_get_main_queue(), ^{
             g_encodedFrameCount++;
         });
@@ -189,15 +189,15 @@ void h264EncodedFrameCallback(CMSampleBufferRef sampleBuffer, void *userData)
 {
     // Get the sensor controller singleton
     _sensorController = [STSensorController sharedController];
-    
+
     // Set ourself as the delegate to receive sensor data.
     _sensorController.delegate = self;
-    
+
     NSArray *paths = NSSearchPathForDirectoriesInDomains
     (NSDocumentDirectory, NSUserDomainMask, YES);
     NSString *documentsDirectory = [paths objectAtIndex:0];
     documentsDirectory = [documentsDirectory stringByAppendingString:@"/"];
-    
+
     g_dataDir = [documentsDirectory UTF8String];
 }
 
@@ -209,7 +209,7 @@ void h264EncodedFrameCallback(CMSampleBufferRef sampleBuffer, void *userData)
 - (void)sensorDidConnect
 {
     NSLog(@"[Structure] Sensor connected!");
-    
+
     if (![self currentStateNeedsSensor])
     {
         [self enterSceneLabellingState];
@@ -258,35 +258,35 @@ void h264EncodedFrameCallback(CMSampleBufferRef sampleBuffer, void *userData)
     // become active again.
     if ([[UIApplication sharedApplication] applicationState] != UIApplicationStateActive)
         return;
-    
+
     NSLog(@"[Structure] Sensor disconnected!");
-    
+
     // Reset the scan on disconnect, since we won't be able to recover afterwards.
     if (_slamState.scannerState == ScannerStateScanning)
     {
         [self resetButtonPressed:self];
         [self enterViewingState];
     }
-    
+
     if (_useColorCamera)
         [self stopColorCamera];
-    
+
     [self updateIdleTimer];
 }
 
 
 - (STSensorControllerInitStatus)connectToStructureSensorAndStartStreaming
 {
-    
+
     // Try connecting to a Structure Sensor.
     STSensorControllerInitStatus result = [_sensorController initializeSensorConnection];
-    
+
     if (result == STSensorControllerInitStatusSuccess || result == STSensorControllerInitStatusAlreadyInitialized)
     {
         // Even though _useColorCamera was set in viewDidLoad by asking if an approximate calibration is guaranteed,
         // it's still possible that the Structure Sensor that has just been plugged in has a custom or approximate calibration
         // that we couldn't have known about in advance.
-        
+
         STCalibrationType calibrationType = [_sensorController calibrationType];
         if(calibrationType == STCalibrationTypeApproximate || calibrationType == STCalibrationTypeDeviceSpecific)
         {
@@ -300,10 +300,10 @@ void h264EncodedFrameCallback(CMSampleBufferRef sampleBuffer, void *userData)
         // If we can't use the color camera, then don't try to use registered depth.
         if (!_useColorCamera)
             _options.useHardwareRegisteredDepth = false;
-        
+
         _appStatus.sensorStatus = AppStatus::SensorStatusOk;
         [self updateAppStatusMessage];
-        
+
         // Start streaming depth data.
         [self startStructureSensorStreaming];
     }
@@ -319,13 +319,13 @@ void h264EncodedFrameCallback(CMSampleBufferRef sampleBuffer, void *userData)
                 NSLog(@"[Structure] Error: Sensor still waking up."); break;
             default: {}
         }
-        
+
         _appStatus.sensorStatus = AppStatus::SensorStatusNeedsUserToConnect;
         [self updateAppStatusMessage];
     }
-    
+
     [self updateIdleTimer];
-    
+
     return result;
 }
 
@@ -333,7 +333,7 @@ void h264EncodedFrameCallback(CMSampleBufferRef sampleBuffer, void *userData)
 {
     if (![self isStructureConnectedAndCharged])
         return;
-    
+
     // Tell the driver to start streaming.
     NSError *error = nil;
     BOOL optionsAreValid = FALSE;
@@ -341,7 +341,7 @@ void h264EncodedFrameCallback(CMSampleBufferRef sampleBuffer, void *userData)
     {
         // We can use either registered or unregistered depth.
         _structureStreamConfig = _options.useHardwareRegisteredDepth ? STStreamConfigRegisteredDepth640x480 : STStreamConfigDepth640x480;
-        
+
         if (_options.useHardwareRegisteredDepth)
         {
             // We are using the color camera, so let's make sure the depth gets synchronized with it.
@@ -358,25 +358,25 @@ void h264EncodedFrameCallback(CMSampleBufferRef sampleBuffer, void *userData)
                                                                              kSTFrameSyncConfigKey : @(STFrameSyncDepthAndRgb)}
                                                                      error:&error];
         }
-        
+
         [self startColorCamera];
     }
     else
     {
         _structureStreamConfig = STStreamConfigDepth640x480;
-        
+
         optionsAreValid = [_sensorController startStreamingWithOptions:@{kSTStreamConfigKey : @(_structureStreamConfig),
                                                                          kSTFrameSyncConfigKey : @(STFrameSyncOff)} error:&error];
     }
-    
+
     if (!optionsAreValid)
     {
         NSLog(@"Error during streaming start: %s", [[error localizedDescription] UTF8String]);
         return;
     }
-    
+
     NSLog(@"[Structure] Streaming started.");
-    
+
     // Notify and initialize streaming dependent objects.
     [self onStructureSensorStartedStreaming];
 }
@@ -384,7 +384,7 @@ void h264EncodedFrameCallback(CMSampleBufferRef sampleBuffer, void *userData)
 - (void)onStructureSensorStartedStreaming
 {
     NSLog(@"onStructureSensorStartedStreaming");
-    
+
     if (!_slamState.initialized)
     {
         [self enterSceneLabellingState];
@@ -408,10 +408,10 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
     float t = tan(0.5f * fov);
     float fx = 0.5f * width / t;
     float fy = 0.5f * height / t * aspect;
-    
+
     float mx = (float)(width - 1.0f) / 2.0f;
     float my = (float)(height - 1.0f) / 2.0f;
- 
+
     if (useHalf) {
         fx *= 0.5f; fy *= 0.5f;
         mx *= 0.5f; my *= 0.5f;
@@ -425,21 +425,21 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
     @autoreleasepool {
         CVImageBufferRef imBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
         CVPixelBufferLockBaseAddress(imBuffer, 0);
-        
+
         CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceGray();
-        
+
         CGContextRef context = CGBitmapContextCreate(CVPixelBufferGetBaseAddressOfPlane(imBuffer, 0), CVPixelBufferGetWidth(imBuffer), CVPixelBufferGetHeight(imBuffer), 8, CVPixelBufferGetBytesPerRowOfPlane(imBuffer,0), colorSpace, kCGImageAlphaNone);
-        
+
         CGImageRef cgImage = CGBitmapContextCreateImage(context);
         CVPixelBufferUnlockBaseAddress(imBuffer,0);
-        
+
         CGContextRelease(context);
         CGColorSpaceRelease(colorSpace);
-        
+
         UIImage *image = [UIImage imageWithCGImage:cgImage];
-        
+
         CGImageRelease(cgImage);
-        
+
         return image;
     }
 }
@@ -450,10 +450,10 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
     int totalSize = depthFrame.width * depthFrame.height;
     int numNotNan = 0;
     int numValidDistance = 0;
-    
+
     const double distanceThreshold = 750.0;
     const double threshold = 0.45;
-    
+
     for(int i = 0; i < totalSize; i++)
     {
         if(!isnan(depth[i]))
@@ -465,10 +465,10 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
             }
         }
     }
-    
+
     double percentGood = ((double) numValidDistance) / numNotNan;
     return (percentGood > threshold) || isnan(percentGood);
-    
+
 }
 
 -(void)numFeatures:(UIImage*)inputImage
@@ -480,9 +480,9 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
     [cornerDetector setThreshold:0.12];
     [cornerDetector setSensitivity:25.0];
     [pictureInput removeAllTargets];
-    
+
     [cornerDetector setCornersDetectedBlock:^(GLfloat* cornerArray, NSUInteger cornersDetected, CMTime frameTime) {
-       
+
         //NSLog(@"Number of corners: %ld", (unsigned long)cornersDetected);
 
         /*dispatch_async(dispatch_get_main_queue(), ^{
@@ -490,19 +490,19 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
             {
                 bool hasNoCorners = cornersDetected < numCornerThreshold;
                 [[self losingTrackingLabel] setHidden:!(hasNoCorners && prevFrameNoFeatures && prevFrame2NoFeatures)];
-                
+
                 prevFrame2NoFeatures = prevFrameNoFeatures;
                 prevFrameNoFeatures = hasNoCorners;
             }
         });*/
         const unsigned int numCornerThreshold = 3;
-        
+
         for(int i = 0; i < cornersDetected; i++)
         {
             [corners addObject:[NSNumber numberWithFloat:cornerArray[2 * i]]];
             [corners addObject:[NSNumber numberWithFloat:cornerArray[2 * i + 1]]];
         }
-        
+
 
         bool hasNoCorners = cornersDetected < numCornerThreshold;
         const float maxCorners = 25;
@@ -512,9 +512,9 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
                 numPreviousCorners[i] = numPreviousCorners[i + 1];
             }
             numPreviousCorners[numPrevFramesTracked - 1] = numCornersForColor;
-            
+
             numCornersForColor = *std::max_element(numPreviousCorners, numPreviousCorners + numPrevFramesTracked);
-            
+
             float progress = 0;
             if(numCornersForColor <= 2) {
                 progress = 0.2;
@@ -525,13 +525,13 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
             else {
                 progress = 0.2 + log2(numCornersForColor) / (log2(maxCorners) * 1.25);
             }
-            
+
             /*
             CGFloat redColor   = CGFloat( ( (float) (maxCorners - numCornersForColor)) / maxCorners );
             CGFloat greenColor = CGFloat( ( (float) (numCornersForColor) / maxCorners));
             UIColor *color = [[UIColor alloc] initWithRed:redColor green:greenColor blue:0 alpha:1];
              */
-            
+
             float hue = 1.0f / 3 * log2(numCornersForColor) / log2(maxCorners);
             //NSLog(@"Hue: %f", hue);
             UIColor *color = [[UIColor alloc] initWithHue:hue saturation:1 brightness:1 alpha:1];
@@ -548,7 +548,7 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
                 //progress = 1.0;
                 color = [UIColor greenColor];
             }*/
-            
+
             //[[self losingTrackingLabel] setHidden:!hasNoCorners];
             [[self numCornersProgressView] setProgressTintColor:color];
             [[self numCornersProgressView] setProgress:progress animated:YES];
@@ -557,7 +557,7 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
        // });
 
     }];
-    
+
     [pictureInput addTarget:cornerDetector];
     [cornerDetector useNextFrameForImageCapture];
     [pictureInput processImage];
@@ -589,7 +589,7 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
 - (void)sensorDidOutputSynchronizedDepthFrame:(STDepthFrame*)depthFrame
                                 andColorFrame:(STColorFrame*)colorFrame
 {
-    
+
     if (_slamState.initialized)
     {
         //NSLog(@"process depth/color frame");
@@ -603,26 +603,26 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
             _options.colorFocalY = colorIntrinsics.y;
             _options.colorCenterX = colorIntrinsics.z;
             _options.colorCenterY = colorIntrinsics.w;
-            
+
             _options.depthFocalX = depthIntrinsics.x;
             _options.depthFocalY = depthIntrinsics.y;
             _options.depthCenterX = depthIntrinsics.z;
             _options.depthCenterY = depthIntrinsics.w;
-            
+
             /*
             float *m4 = (float*) malloc(16 * sizeof(float));
             [depthFrame colorCameraPoseInDepthCoordinateFrame:m4];
-            
+
             for(int i = 0; i < 4; i++) {
                 NSLog(@"%f %f %f %f", m4[i], m4[i + 4], m4[i + 8], m4[i + 12]);
             }
             free(m4);
             */
-            
+
             if(!_options.useHardwareRegisteredDepth) {
                 float *m4 = (float*) malloc(16 * sizeof(float));
                 [_sensorController colorCameraPoseInSensorCoordinateFrame:m4];
-            
+
                 for(int i = 0; i < 4; i++) {
                     for(int j = 0; j < 4; j++) {
                         _options.colorToDepthExtrinsics[4 * i + j] = m4[i + 4 * j];
@@ -644,24 +644,24 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
         {
             //if(g_frameCount % 100 == 0)
               //  NSLog(@"Frame Count: %d", g_frameCount);
-            
+
             colorFrame = colorFrame.halfResolutionColorFrame;
             // Save first frame out as image
             if(g_frameCount == 1)
             {
                 UIImage *thumbnail = [self imageFromFrame:colorFrame];
-                
+
                 std::string curFilePrefix = g_dataDir + g_filePrefix;
                 NSString *filePath = [NSString stringWithUTF8String:(curFilePrefix + ".jpg").c_str()];
                 //NSLog(filePath);
                 [UIImageJPEGRepresentation(thumbnail, 1) writeToFile: filePath atomically:YES];
             }
-            
+
             g_encoder->encodeFrame(colorFrame);
             writeDepthFrame(depthFrame);
             _colorTimestamps.push_back([colorFrame timestamp]);
             _depthTimestamps.push_back([depthFrame timestamp]);
-            
+
 //#ifndef DEBUG_MODE
             //if((g_frameCount % 5) == 0) // Check if too close or losing tracking every 5 frames
             //{
@@ -673,9 +673,9 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
 
             //UIImage* im = [self imageFromFrame:colorFrame];
             [self numFeatures:im];
-            
+
             NSLog(@"Exposure Duration: %f, ISO: %f", CMTimeGetSeconds([self.videoDevice exposureDuration]), self.videoDevice.ISO);
-            
+
             AVCaptureWhiteBalanceGains wb = [self.videoDevice deviceWhiteBalanceGains];
             float redGain = wb.redGain;
             float greenGain = wb.greenGain;
@@ -683,9 +683,9 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
 
             float exposureDuration = CMTimeGetSeconds([self.videoDevice exposureDuration]);
             float ISO = self.videoDevice.ISO;
-            
-            
-            //NSLog(@"Blue Gain: %f Green Gain: %f Red Gain: %f", wb.blueGain, wb.greenGain, wb.redGain);
+
+
+            NSLog(@"Blue Gain: %f Green Gain: %f Red Gain: %f", wb.blueGain, wb.greenGain, wb.redGain);
             fwrite((float*) &redGain, sizeof(float), 1, g_cameraFile);
             fwrite((float*) &greenGain, sizeof(float), 1, g_cameraFile);
             fwrite((float*) &blueGain, sizeof(float), 1, g_cameraFile);
@@ -698,7 +698,7 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
                 g_frameCount++;
             });
         }
-        
+
         // Scene rendering is triggered by new frames to avoid rendering the same view several times.
         [self renderSceneForDepthFrame:depthFrame colorFrameOrNil:colorFrame];
     }
@@ -722,14 +722,14 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
     if (!g_running) {
         unsigned int colorWidth = _options.useHalfResColor ? _options.colorWidth / 2 : _options.colorWidth;
         unsigned int colorHeight = _options.useHalfResColor ? _options.colorHeight / 2 : _options.colorHeight;
-        
+
         NSLog(@"startScanningAndOpen (%d,%d, bitrate %d)", colorWidth, colorHeight, _options.colorEncodeBitrate);
-        
+
         EncoderConfig config(colorWidth, colorHeight, EncoderConfig::H264, 30, _options.colorEncodeBitrate); //30fps
         g_encoder = new Encoder(config);
         g_encoder->registerEncodedFrameCallback(h264EncodedFrameCallback, 0);
         if (!g_depthCompressed) g_depthCompressed = new uint8_t[(2*_options.depthWidth+1) * _options.depthHeight];
-        
+
         NSDateFormatter *dateFormatter=[[NSDateFormatter alloc] init];
         [dateFormatter setDateFormat:@"yyyy-MM-dd_hh-mm-ss"];
         std::string dateString = [[dateFormatter stringFromDate:[NSDate date]] UTF8String];
@@ -748,7 +748,7 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
 
         [self openFile:(dateString + "__" + _options.deviceId)];
         NSLog(@"[Structure] opened file");
-        
+
         writeIntrinsics(_options);
         g_running = true;
     }
@@ -771,8 +771,8 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
     g_metaFile = fopen((g_dataDir + filePref + ".txt").c_str(), "w");
     g_imuFile = fopen((g_dataDir + filePref + ".imu").c_str(), "wb");
     g_cameraFile = fopen((g_dataDir + filePref + ".camera").c_str(), "wb");
-    
-    
+
+
     std::string versionNum = "v1";
     fwrite(versionNum.c_str(), versionNum.size() * sizeof(char), 1, g_cameraFile);
 
@@ -797,28 +797,28 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
     fprintf(g_metaFile, "numColorFrames = %d\r\n", g_encodedFrameCount);
     fprintf(g_metaFile, "numIMUmeasurements = %d\r\n", g_numIMUmeasurements);
     fclose(g_metaFile);
-    
+
     //write timestamps to end of depth file
     [g_depthLock lock];
     WRITE(_depthTimestamps.data(), sizeof(NSTimeInterval), g_frameCount, g_depthFile);
     WRITE(_colorTimestamps.data(), sizeof(NSTimeInterval), g_frameCount, g_depthFile);
     fclose(g_depthFile);
     [g_depthLock unlock];
-    
+
     [g_h264Lock lock];
     fclose(g_h264File);
     [g_h264Lock unlock];
-    
+
     [g_imuLock lock];
     fclose(g_imuFile);
     [g_imuLock unlock];
-    
+
     [g_cameraLock lock];
     fclose(g_cameraFile);
     [g_cameraLock unlock];
-    
+
     [self verifyFiles];
-    
+
     NSLog(@"[Structure] closed file");
 }
 
@@ -826,7 +826,7 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
 {
     bool remove = false;
     std::string curFilePrefix = g_dataDir + g_filePrefix;
-    
+
     NSError *error = nil;
     NSString *absH264File = [NSString stringWithUTF8String:(curFilePrefix + ".h264").c_str()];
     NSString *h264FileSize = [NSString stringWithFormat:@"%llu",
@@ -836,7 +836,7 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
         NSLog(@"H264 file %@, size %@, error: %@", absH264File, h264FileSize, error);
         remove = true;
     }
-    
+
     error = nil;
     NSString *absDepthFile = [NSString stringWithUTF8String:(curFilePrefix + ".h264").c_str()];
     NSString *depthFileSize = [NSString stringWithFormat:@"%llu",
@@ -846,7 +846,7 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
         NSLog(@"Depth file %@, size %@, error: %@", absDepthFile, depthFileSize, error);
         remove = true;
     }
-    
+
     error = nil;
     NSString *absMetaFile = [NSString stringWithUTF8String:(curFilePrefix + ".h264").c_str()];
     NSString *metaFileSize = [NSString stringWithFormat:@"%llu",
@@ -856,7 +856,7 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
         NSLog(@"Meta file %@, size %@, error: %@", absMetaFile, metaFileSize, error);
         remove = true;
     }
-    
+
     error = nil;
     NSString *absImuFile = [NSString stringWithUTF8String:(curFilePrefix + ".h264").c_str()];
     NSString *imuFileSize = [NSString stringWithFormat:@"%llu",
@@ -866,7 +866,7 @@ GLKVector4 getIntrinsicsFromGlProj(const GLKMatrix4& matrix, unsigned int width,
         NSLog(@"imu file %@, size %@, error: %@", absImuFile, imuFileSize, error);
         remove = true;
     }
-    
+
     if (remove)
     {
         NSFileManager *fileManager = [NSFileManager defaultManager];

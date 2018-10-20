@@ -1,11 +1,12 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 #
 # Install dependencies using install_deps.sh
 # Run using start_upload_server.sh
-# 
+#
 # To mimic an upload from the iPad app use this curl command:
 # curl -v -X PUT -H "FILE_NAME: test.h264" --data-binary "@<path_to_some_file>" -H "Content-Type: application/ipad_scanner_data" "http://localhost:8000/upload"
 # curl -v "localhost:8000/verify?filename=<base_file_name>&checksum=<check_sum>"
+# localhost: 192.168.1.5
 
 import os
 import shutil
@@ -121,12 +122,12 @@ def receive_file(request, filename, output=None):
     stream = request.environ['wsgi.input']
     while True:
         if(content_read % (chunk_size * 1000) == 0):
-            log.info("Receiving %s: Uploaded count: %d, \t Percent: %.2f", 
+            log.info("Receiving %s: Uploaded count: %d, \t Percent: %.2f",
                 filename, content_read, 100 * float(content_read) / content_length )
         try:
             chunk = stream.read(chunk_size)
         except Exception as e:
-            log.exception('Receiving %s: Exception: %s while reading input. Aborting...', 
+            log.exception('Receiving %s: Exception: %s while reading input. Aborting...',
                 filename, str(e))
             raise Error(message='Unexpected error while receiving', status_code=500)
         if len(chunk) == 0:
@@ -135,13 +136,13 @@ def receive_file(request, filename, output=None):
         if output is not None:
             output.write(chunk)
 
-    log.info("Receiving %s: Uploaded count: %d, \t Percent: %.2f", 
+    log.info("Receiving %s: Uploaded count: %d, \t Percent: %.2f",
              filename, content_read, 100 * float(content_read) / content_length)
     if output is None:
         log.info('Discarding received file ' + filename)
 
     if content_read != content_length:
-        log.error('Receiving %s: Expected length %d, received length %d. Aborting...', 
+        log.error('Receiving %s: Expected length %d, received length %d. Aborting...',
                   filename, content_length, content_read)
         raise Error(message='Unexpected error while receiving', status_code=400)
 
